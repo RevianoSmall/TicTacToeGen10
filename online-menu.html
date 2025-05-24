@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Online Multiplayer</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins :wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      outline: none;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #e0e0e0;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      padding: 20px;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #2c2c2c;
+      color: white;
+      padding: 15px 30px;
+      text-align: left;
+      font-weight: bold;
+      z-index: 1000;
+      font-size: 1.1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      z-index: 1001;
+      transition: background-color 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background-color: #5a6268;
+    }
+
+    .container {
+      max-width: 400px;
+      width: 100%;
+      background-color: #ffffff;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-top: 120px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      font-weight: 600;
+      color: #2c2c2c;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      margin: 12px 0;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #357ae8;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+    }
+
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+
+    /* Room List */
+    .room-list {
+      margin-top: 30px;
+      text-align: left;
+      width: 100%;
+    }
+
+    .room-item {
+      background-color: #ffffff;
+      padding: 15px 20px;
+      border-left: 4px solid #4285f4;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .room-item:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .room-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: #2c2c2c;
+    }
+
+    .room-subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .room-status {
+      float: right;
+      color: #4285f4;
+      font-weight: bold;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Tombol Back -->
+  <button class="back-btn" onclick="window.location.href='menu.html'">← Kembali</button>
+  <div class="navbar">Tic Tac Toe - Online</div>
+
+  <!-- Menu Container -->
+  <div class="container">
+    <h1>Multiplayer Online</h1>
+
+    <button class="btn-secondary" onclick="location.href='create-room.html'">Create Room</button>
+    <button class="btn-secondary" onclick="joinRandomRoom()">Join Random Room</button>
+    <button class="btn-secondary" onclick="loadRooms()">Refresh Room List</button>
+
+    <!-- Daftar Room -->
+    <div class="room-list" id="roomList">
+      <p>Muat daftar room...</p>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js "></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js "></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js "></script>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2Rq-EeSNbbyxvUNVnUwSZjIhl_Gnccws",
+      authDomain: "project-game-5addd.firebaseapp.com",
+      databaseURL: "https://project-game-5addd-default-rtdb.firebaseio.com",
+      projectId: "project-game-5addd",
+      storageBucket: "project-game-5addd.firebasestorage.app",
+      messagingSenderId: "658788201764",
+      appId: "1:658788201764:android:71692039dc532497556fb1"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    // Cek login
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) window.location.href = 'index.html';
+    });
+
+    function loadRooms() {
+      const roomListEl = document.getElementById("roomList");
+      roomListEl.innerHTML = "<p>Loading rooms...</p>";
+
+      database.ref("rooms").once("value", snapshot => {
+        roomListEl.innerHTML = "";
+        if (!snapshot.exists()) {
+          roomListEl.innerHTML = "<p>Tidak ada room tersedia.</p>";
+          return;
+        }
+
+        let foundRoom = false;
+
+        snapshot.forEach(child => {
+          const data = child.val();
+          if (data.gameOver) return; // Skip room yang sudah selesai
+
+          const isPublic = data.type === "public";
+          const playerCount = [data.playerX, data.playerO].filter(Boolean).length;
+
+          if (isPublic) {
+            foundRoom = true;
+            const div = document.createElement("div");
+            div.className = "room-item";
+            div.innerHTML = `
+              <div class="room-title">
+                ID: ${child.key}
+                <span class="room-status">${playerCount}/2</span>
+              </div>
+              <div class="room-subtitle">(${data.type})</div>
+            `;
+            div.onclick = () => joinRoomPrompt(child.key);
+            roomListEl.appendChild(div);
+          }
+        });
+
+        if (!foundRoom) {
+          roomListEl.innerHTML = "<p>Tidak ada room public tersedia.</p>";
+        }
+      });
+    }
+
+    function joinRoomPrompt(roomId) {
+      const user = auth.currentUser;
+      const roomRef = database.ref(`rooms/${roomId}`);
+
+      roomRef.once("value", snapshot => {
+        const room = snapshot.val();
+        if (!room || room.gameOver) return;
+
+        if (room.type === "private") {
+          const pass = prompt("Masukkan password room:");
+          if (!pass) return;
+          if (room.password !== pass) {
+            alert("Password salah!");
+            return;
+          }
+        }
+
+        if (room.playerO === null && room.playerX !== user.uid) {
+          roomRef.update({
+            playerO: user.uid
+          }).then(() => {
+            window.location.href = `game-online.html?room=${roomId}`;
+          });
+        } else {
+          alert("Room penuh atau kamu sudah berada di dalamnya.");
+        }
+      });
+    }
+
+    function joinRandomRoom() {
+      database.ref("rooms").once("value", snapshot => {
+        if (!snapshot.exists()) {
+          alert("Tidak ada room tersedia.");
+          return;
+        }
+
+        let availableRooms = [];
+        snapshot.forEach(child => {
+          const room = child.val();
+          const isPublic = room.type === "public";
+          const playerCount = [room.playerX, room.playerO].filter(Boolean).length;
+
+          if (isPublic && !room.gameOver && playerCount < 2) {
+            availableRooms.push(child.key);
+          }
+        });
+
+        if (availableRooms.length === 0) {
+          alert("Tidak ada room random tersedia.");
+          return;
+        }
+
+        const randomIndex = Math.floor(Math.random() * availableRooms.length);
+        const roomId = availableRooms[randomIndex];
+        joinRoom(roomId);
+      });
+    }
+
+    function joinRoom(roomId) {
+      const roomRef = database.ref(`rooms/${roomId}`);
+      const user = auth.currentUser;
+
+      roomRef.once("value", snapshot => {
+        const room = snapshot.val();
+        if (!room) return;
+
+        if (room.type === "private") {
+          const pass = prompt("Masukkan password room:");
+          if (!pass) return;
+          if (room.password !== pass) {
+            alert("Password salah!");
+            return;
+          }
+        }
+
+        if (room.playerO === null && room.playerX !== user.uid) {
+          roomRef.update({
+            playerO: user.uid
+          }).then(() => {
+            window.location.href = `game-online.html?room=${roomId}`;
+          });
+        } else {
+          alert("Room penuh atau kamu sudah berada di dalamnya.");
+        }
+      });
+    }
+
+    // Load saat halaman dimuat
+    window.onload = () => {
+      loadRooms();
+    };
+  </script>
+
+</body>
+</html>
