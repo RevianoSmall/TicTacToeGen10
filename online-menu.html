@@ -212,12 +212,14 @@
 
         snapshot.forEach(child => {
           const data = child.val();
-          if (data.gameOver) return; // Skip room yang sudah selesai
+          if (data.gameOver || data.opponent) {
+            return; // Skip room yang sudah selesai atau sudah ada pemain kedua
+          }
 
           const isPublic = data.type === "public";
           const playerCount = [data.playerX, data.playerO].filter(Boolean).length;
 
-          if (isPublic) {
+          if (isPublic && !data.opponent) {
             foundRoom = true;
             const div = document.createElement("div");
             div.className = "room-item";
@@ -245,7 +247,11 @@
 
       roomRef.once("value", snapshot => {
         const room = snapshot.val();
-        if (!room || room.gameOver) return;
+        if (!room || room.gameOver || room.opponent) {
+          alert("Room penuh atau sudah dimulai.");
+          window.location.href = "online-menu.html";
+          return;
+        }
 
         if (room.type === "private") {
           const pass = prompt("Masukkan password room:");
@@ -258,7 +264,7 @@
 
         if (room.playerO === null && room.playerX !== user.uid) {
           roomRef.update({
-            playerO: user.uid
+            opponent: user.uid
           }).then(() => {
             window.location.href = `game-online.html?room=${roomId}`;
           });
@@ -281,7 +287,7 @@
           const isPublic = room.type === "public";
           const playerCount = [room.playerX, room.playerO].filter(Boolean).length;
 
-          if (isPublic && !room.gameOver && playerCount < 2) {
+          if (isPublic && !room.opponent && playerCount < 2) {
             availableRooms.push(child.key);
           }
         });
@@ -316,7 +322,7 @@
 
         if (room.playerO === null && room.playerX !== user.uid) {
           roomRef.update({
-            playerO: user.uid
+            opponent: user.uid
           }).then(() => {
             window.location.href = `game-online.html?room=${roomId}`;
           });
