@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tic Tac Toe - Offline</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins :wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      outline: none;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #e0e0e0;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      padding: 20px;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #2c2c2c;
+      color: white;
+      padding: 15px 30px;
+      text-align: left;
+      font-weight: bold;
+      z-index: 1000;
+      font-size: 1.1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      z-index: 1001;
+      transition: background-color 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background-color: #5a6268;
+    }
+
+    .container {
+      max-width: 400px;
+      width: 100%;
+      background-color: #ffffff;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-top: 120px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      font-weight: 600;
+      color: #2c2c2c;
+    }
+
+    #status {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      font-size: 2.5em;
+      background-color: #ffffff;
+      border: 2px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.3s;
+      border-radius: 8px;
+      user-select: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cell:hover {
+      background-color: #f0f0f0;
+      transform: scale(1.05);
+    }
+
+    .winning-line {
+      position: absolute;
+      height: 5px;
+      background-color: red;
+      z-index: 0;
+    }
+
+    /* Modal untuk konfirmasi */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .modal {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 300px;
+      text-align: center;
+      color: #333;
+    }
+
+    .modal h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    .modal button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.3s;
+    }
+
+    .btn-primary {
+      background-color: #4285f4;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #357ae8;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+
+    @media (max-width: 480px) {
+      .cell {
+        width: 80px;
+        height: 80px;
+        font-size: 2em;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Tombol Back -->
+  <button class="back-btn" onclick="window.location.href='menu.html'">← Kembali</button>
+  <div class="navbar">Tic Tac Toe - Offline</div>
+
+  <!-- Game Container -->
+  <div class="container">
+    <h1>Offline Mode</h1>
+    <p id="status">Giliran Anda (X)</p>
+    <div id="game-board"></div>
+  </div>
+
+  <!-- Modal Result -->
+  <div id="resultModal" class="modal-overlay" style="display: none;">
+    <div class="modal">
+      <h2 id="modalMessage">Anda Menang!</h2>
+      <button class="btn-primary" onclick="restartGame()">Lanjut Bermain</button>
+      <button class="btn-secondary" onclick="goToMenu()">Kembali ke Menu</button>
+    </div>
+  </div>
+
+  <!-- Sound Effect -->
+  <audio id="winSound" src="https://www.soundjay.com/button/sounds/button-16.mp3 "></audio>
+
+  <script>
+    const boardEl = document.getElementById("game-board");
+    const statusEl = document.getElementById("status");
+    const winSound = document.getElementById("winSound");
+    const modal = document.getElementById("resultModal");
+    const modalMessage = document.getElementById("modalMessage");
+
+    let board = Array(9).fill("");
+    let currentPlayer = "X";
+    let gameOver = false;
+
+    const winCombos = [
+      [0,1,2], [3,4,5], [6,7,8],
+      [0,3,6], [1,4,7], [2,5,8],
+      [0,4,8], [2,4,6]
+    ];
+
+    function createBoard() {
+      boardEl.innerHTML = "";
+      board.forEach((value, idx) => {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.dataset.index = idx;
+        cell.addEventListener("click", handleMove);
+        cell.textContent = value;
+        boardEl.appendChild(cell);
+      });
+    }
+
+    function handleMove(e) {
+      if (gameOver || currentPlayer !== "X") return;
+
+      const idx = e.target.dataset.index;
+      if (board[idx] !== "") return;
+
+      board[idx] = "X";
+      updateBoard();
+
+      if (checkWin("X")) {
+        highlightWin("X");
+        playWinSound();
+        showModal("Anda Menang!");
+        gameOver = true;
+        return;
+      }
+
+      if (!board.includes("")) {
+        showModal("Seri!");
+        gameOver = true;
+        return;
+      }
+
+      currentPlayer = "O";
+      statusEl.textContent = "AI Berpikir...";
+      setTimeout(aiMove, 800);
+    }
+
+    function aiMove() {
+      const bestMove = minimax(board, "O").index;
+      if (bestMove !== undefined) {
+        board[bestMove] = "O";
+        currentPlayer = "X";
+        updateBoard();
+
+        if (checkWin("O")) {
+          highlightWin("O");
+          playWinSound();
+          showModal("AI Menang!");
+          gameOver = true;
+          return;
+        }
+
+        if (!board.includes("")) {
+          showModal("Seri!");
+          gameOver = true;
+          return;
+        }
+
+        statusEl.textContent = "Giliran Anda (X)";
+      }
+    }
+
+    function checkWin(player) {
+      return winCombos.some(combo =>
+        combo.every(index => board[index] === player)
+      );
+    }
+
+    function emptyIndices() {
+      return board.map((val, i) => val === "" ? i : null).filter(v => v !== null);
+    }
+
+    function checkWinForPlayer(b, player) {
+      return winCombos.some(combo =>
+        combo.every(index => b[index] === player)
+      );
+    }
+
+    function minimax(newBoard, player) {
+      const availSpots = emptyIndices();
+
+      if (checkWinForPlayer(newBoard, "X")) {
+        return { score: -10 };
+      } else if (checkWinForPlayer(newBoard, "O")) {
+        return { score: 10 };
+      } else if (availSpots.length === 0) {
+        return { score: 0 };
+      }
+
+      const moves = [];
+
+      for (let i = 0; i < availSpots.length; i++) {
+        const move = {};
+        move.index = availSpots[i];
+        newBoard[availSpots[i]] = player;
+
+        if (player === "O") {
+          const result = minimax(newBoard, "X");
+          move.score = result.score;
+        } else {
+          const result = minimax(newBoard, "O");
+          move.score = result.score;
+        }
+
+        newBoard[availSpots[i]] = "";
+        moves.push(move);
+      }
+
+      let bestMove;
+      if (player === "O") {
+        let bestScore = -Infinity;
+        for (let i = 0; i < moves.length; i++) {
+          if (moves[i].score > bestScore) {
+            bestScore = moves[i].score;
+            bestMove = i;
+          }
+        }
+      } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < moves.length; i++) {
+          if (moves[i].score < bestScore) {
+            bestScore = moves[i].score;
+            bestMove = i;
+          }
+        }
+      }
+
+      return moves[bestMove];
+    }
+
+    function highlightWin(winner = currentPlayer) {
+      const winningCombo = winCombos.find(combo =>
+        combo.every(index => board[index] === winner)
+      );
+
+      if (!winningCombo) return;
+
+      winningCombo.forEach(i => {
+        const cell = document.querySelector(`[data-index="${i}"]`);
+        cell.style.animation = "pulse 0.8s infinite";
+      });
+
+      const cells = document.querySelectorAll(".cell");
+      const startCell = cells[winningCombo[0]];
+      const endCell = cells[winningCombo[2]];
+
+      const startX = startCell.offsetLeft + 50;
+      const startY = startCell.offsetTop + 50;
+      const endX = endCell.offsetLeft + 50;
+      const endY = endCell.offsetTop + 50;
+
+      const length = Math.hypot(endX - startX, endY - startY);
+      const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+
+      const line = document.createElement("div");
+      line.className = "winning-line";
+      line.style.width = length + "px";
+      line.style.transformOrigin = "left center";
+      line.style.transform = `rotate(${angle}deg)`;
+      line.style.left = startX + "px";
+      line.style.top = startY + "px";
+
+      boardEl.appendChild(line);
+    }
+
+    function playWinSound() {
+      winSound.currentTime = 0;
+      winSound.play();
+    }
+
+    function updateBoard() {
+      const cells = document.querySelectorAll(".cell");
+      cells.forEach((cell, i) => {
+        cell.textContent = board[i];
+        cell.style.animation = "none";
+        cell.offsetHeight; // trigger reflow
+      });
+    }
+
+    function showModal(message) {
+      modalMessage.textContent = message;
+      modal.style.display = "flex";
+    }
+
+    function restartGame() {
+      modal.style.display = "none";
+      board = Array(9).fill("");
+      currentPlayer = "X";
+      gameOver = false;
+      statusEl.textContent = "Giliran Anda (X)";
+      boardEl.innerHTML = "";
+      createBoard();
+    }
+
+    function goToMenu() {
+      window.location.href = "menu.html";
+    }
+
+    function initGame() {
+      createBoard();
+    }
+
+    // Inisialisasi
+    window.onload = () => {
+      initGame();
+    };
+  </script>
+
+  <style>
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .cell.win {
+      animation: pulse 0.8s infinite;
+    }
+  </style>
+
+</body>
+</html>
