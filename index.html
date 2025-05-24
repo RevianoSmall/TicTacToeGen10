@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Tic Tac Toe</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins :wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #e0e0e0; /* Abu-abu lembut */
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #2c2c2c;
+      color: white;
+      padding: 15px 30px;
+      text-align: left;
+      font-weight: bold;
+      z-index: 1000;
+      font-size: 1.1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .container {
+      max-width: 400px;
+      width: 100%;
+      background-color: #ffffff;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-top: 100px;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      font-weight: 600;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      transition: background 0.3s ease;
+      font-weight: 500;
+    }
+
+    button:hover {
+      background-color: #357ae8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <div class="navbar">Tic Tac Toe Online</div>
+
+  <!-- Login Container -->
+  <div class="container">
+    <h1>Masuk untuk Bermain</h1>
+    <button onclick="loginWithGoogle()">Login dengan Google</button>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js "></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js "></script>
+
+  <script>
+    // Konfigurasi Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2Rq-EeSNbbyxvUNVnUwSZjIhl_Gnccws",
+      authDomain: "project-game-5addd.firebaseapp.com",
+      databaseURL: "https://project-game-5addd-default-rtdb.firebaseio.com ",
+      projectId: "project-game-5addd",
+      storageBucket: "project-game-5addd.firebasestorage.app",
+      messagingSenderId: "658788201764",
+      appId: "1:658788201764:android:71692039dc532497556fb1"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    // Fungsi Login
+    function loginWithGoogle() {
+      auth.signInWithPopup(provider).then(result => {
+        alert('Login berhasil!');
+        window.location.href = 'menu.html';
+      }).catch(error => {
+        console.error(error);
+        alert('Gagal login: ' + error.message);
+      });
+    }
+
+    // Cek Autentikasi saat halaman dimuat
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        window.location.href = 'menu.html';
+      }
+    });
+  </script>
+
+</body>
+    </html>
