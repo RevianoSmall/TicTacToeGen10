@@ -98,6 +98,7 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
       margin-bottom: 30px;
+      position: relative;
     }
 
     .cell {
@@ -226,7 +227,7 @@
     const firebaseConfig = {
       apiKey: "AIzaSyC2Rq-EeSNbbyxvUNVnUwSZjIhl_Gnccws",
       authDomain: "project-game-5addd.firebaseapp.com",
-      databaseURL: "https://project-game-5addd-default-rtdb.firebaseio.com",
+      databaseURL: "https://project-game-5addd-default-rtdb.firebaseio.com ",
       projectId: "project-game-5addd",
       storageBucket: "project-game-5addd.firebasestorage.app",
       messagingSenderId: "658788201764",
@@ -239,7 +240,6 @@
     const roomId = new URLSearchParams(window.location.search).get("room");
     const roomRef = database.ref(`rooms/${roomId}`);
     let mySymbol = null;
-    let turnTimer = null;
 
     // UI Elements
     const boardEl = document.getElementById("game-board");
@@ -269,15 +269,16 @@
       });
     }
 
-    function highlightWinLine(line) {
-      const cells = document.querySelectorAll(".cell");
-      const start = cells[line[0]].getBoundingClientRect();
-      const end = cells[line[2]].getBoundingClientRect();
+    function highlightWinLine(winLine) {
+      // Hapus garis menang lama
+      const existingLines = document.querySelectorAll(".winning-line");
+      existingLines.forEach(line => line.remove());
 
-      const startX = cells[line[0]].offsetLeft + 50;
-      const startY = cells[line[0]].offsetTop + 50;
-      const endX = cells[line[2]].offsetLeft + 50;
-      const endY = cells[line[2]].offsetTop + 50;
+      const cells = document.querySelectorAll(".cell");
+      const startX = cells[winLine[0]].offsetLeft + 50;
+      const startY = cells[winLine[0]].offsetTop + 50;
+      const endX = cells[winLine[2]].offsetLeft + 50;
+      const endY = cells[winLine[2]].offsetTop + 50;
 
       const length = Math.hypot(endX - startX, endY - startY);
       const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
@@ -309,7 +310,7 @@
         board: Array(9).fill(""),
         turn: "X",
         gameOver: false,
-        turnTime: Date.now() + 10000
+        opponent: null
       });
     }
 
@@ -329,18 +330,19 @@
       );
     }
 
-    function startTurnTimer() {
-      clearInterval(turnTimer);
+    function startTurnTimer(timeLeft = 10) {
+      clearInterval(window.turnInterval);
 
-      timerEl.textContent = "Sisa Waktu: 10";
-      let timeLeft = 10;
+      if (mySymbol !== roomData.turn) return;
 
-      turnTimer = setInterval(() => {
-        timeLeft--;
-        timerEl.textContent = `Sisa Waktu: ${timeLeft}`;
-        if (timeLeft <= 0) {
-          clearInterval(turnTimer);
-          timerEl.textContent = "Waktu habis!";
+      timerEl.textContent = `Sisa Waktu: ${timeLeft}`;
+      let seconds = timeLeft;
+
+      window.turnInterval = setInterval(() => {
+        seconds--;
+        timerEl.textContent = `Sisa Waktu: ${seconds}`;
+        if (seconds <= 0) {
+          clearInterval(window.turnInterval);
           nextPlayerTurn();
         }
       }, 1000);
@@ -351,12 +353,14 @@
         const currentTurn = snap.val();
         roomRef.update({
           turn: currentTurn === "X" ? "O" : "X",
-          turnTime: Date.now() + 10000 // Reset timer untuk pemain selanjutnya
+          turnTime: Date.now() + 10000
         });
       });
     }
 
     function handleCellClick(index) {
+      if (!auth.currentUser || !mySymbol) return;
+
       roomRef.child("turn").once("value", snap => {
         const currentTurn = snap.val();
         if (currentTurn !== mySymbol) return;
@@ -375,7 +379,7 @@
             board: board,
             turn: mySymbol === "X" ? "O" : "X",
             gameOver: isWin || isDraw,
-            turnTime: Date.now() + 10000 // Reset timer untuk lawan
+            turnTime: Date.now() + 10000
           });
 
           if (isWin) {
@@ -391,36 +395,30 @@
     function initGame() {
       firebase.auth().onAuthStateChanged(user => {
         if (!user) {
-          alert("Silakan login terlebih dahulu.");
+          alert("Silakan login dulu.");
           window.location.href = "index.html";
           return;
         }
 
         roomRef.on("value", snapshot => {
           const data = snapshot.val();
-          if (!data) {
+          if (!data || !data.playerX) {
             alert("Room tidak ditemukan.");
             window.location.href = "online-menu.html";
             return;
           }
 
-          // Cek apakah sudah ada 2 pemain dan permainan dimulai
-          const boardNotEmpty = data.board.some(cell => cell !== "");
-          const hasTwoPlayers = data.playerO && data.playerX;
-
-          if (hasTwoPlayers && boardNotEmpty) {
-            const isPlayer = user.uid === data.playerX || user.uid === data.playerO;
-            if (!isPlayer) {
-              alert("Permainan sudah dimulai. Tidak bisa bergabung.");
-              window.location.href = "online-menu.html";
-              return;
-            }
+          // Cek apakah sudah ada pemain kedua atau belum
+          if (data.opponent && data.opponent !== user.uid) {
+            alert("Room penuh atau sedang dimainkan.");
+            window.location.href = "online-menu.html";
+            return;
           }
 
-          // Assign simbol
+          // Assign simbol pemain
           if (user.uid === data.playerX) {
             mySymbol = "X";
-          } else if (user.uid === data.playerO) {
+          } else if (user.uid === data.opponent) {
             mySymbol = "O";
           } else {
             alert("Bukan bagian dari room ini.");
@@ -447,12 +445,12 @@
               });
             } else {
               statusEl.textContent = "Menunggu lawan...";
-              clearInterval(turnTimer);
               timerEl.textContent = "";
+              clearInterval(window.turnInterval);
             }
           });
 
-          // Sinkronisasi gameOver
+          // Deteksi jika game over
           roomRef.child("gameOver").on("value", snap => {
             const gameOver = snap.val();
             if (gameOver) {
@@ -461,13 +459,27 @@
                 const winLine = checkWin(board);
                 if (winLine) highlightWinLine(winLine);
               });
-              showModal(mySymbol === "X" ? data.board.flat().filter(x => x === "X").length > 0 ? "X Menang!" : "O Menang!" : "Seri!");
             }
           });
         });
 
         createBoard();
       });
+    }
+
+    function startTurnTimer(seconds) {
+      clearInterval(window.turnInterval);
+      timerEl.textContent = `Sisa Waktu: ${seconds}`;
+
+      let timeLeft = seconds;
+      window.turnInterval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = `Sisa Waktu: ${timeLeft}`;
+        if (timeLeft <= 0) {
+          clearInterval(window.turnInterval);
+          nextPlayerTurn();
+        }
+      }, 1000);
     }
 
     window.onload = () => {
@@ -485,7 +497,66 @@
     .cell.win {
       animation: pulse 0.8s infinite;
     }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .modal {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 300px;
+      text-align: center;
+      color: #333;
+    }
+
+    .modal h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    .modal button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.3s;
+    }
+
+    .btn-primary {
+      background-color: #4285f4;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #357ae8;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
   </style>
 
 </body>
-</html>""
+</html>
