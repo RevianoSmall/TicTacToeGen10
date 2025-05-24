@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tic Tac Toe - Online</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins :wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      outline: none;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #e0e0e0;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      padding: 20px;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #2c2c2c;
+      color: white;
+      padding: 15px 30px;
+      text-align: left;
+      font-weight: bold;
+      z-index: 1000;
+      font-size: 1.1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      z-index: 1001;
+      transition: background-color 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background-color: #5a6268;
+    }
+
+    .container {
+      max-width: 400px;
+      width: 100%;
+      background-color: #ffffff;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-top: 120px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      font-weight: 600;
+      color: #2c2c2c;
+    }
+
+    #status {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    #timer {
+      font-size: 1rem;
+      color: #4285f4;
+      margin-top: 10px;
+    }
+
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      font-size: 2.5em;
+      background-color: #ffffff;
+      border: 2px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.3s;
+      border-radius: 8px;
+      user-select: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cell:hover {
+      background-color: #f0f0f0;
+      transform: scale(1.05);
+    }
+
+    .winning-line {
+      position: absolute;
+      height: 5px;
+      background-color: red;
+      z-index: 0;
+    }
+
+    /* Modal Result */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .modal {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 300px;
+      text-align: center;
+      color: #333;
+    }
+
+    .modal h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    .modal button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.3s;
+    }
+
+    .btn-primary {
+      background-color: #4285f4;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #357ae8;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Tombol Back -->
+  <button class="back-btn" onclick="window.location.href='menu.html'">← Kembali</button>
+  <div class="navbar">Tic Tac Toe - Online</div>
+
+  <!-- Game Container -->
+  <div class="container">
+    <h1>Online Mode</h1>
+    <p id="status">Menunggu lawan...</p>
+    <p id="timer"></p>
+    <div id="game-board"></div>
+  </div>
+
+  <!-- Modal Result -->
+  <div id="resultModal" class="modal-overlay" style="display: none;">
+    <div class="modal">
+      <h2 id="modalMessage">Anda Menang!</h2>
+      <button class="btn-primary" onclick="restartGame()">Lanjut Bermain</button>
+      <button class="btn-secondary" onclick="goToMenu()">Kembali ke Menu</button>
+    </div>
+  </div>
+
+  <!-- Sound Effect -->
+  <audio id="winSound" src="https://www.soundjay.com/button/sounds/button-16.mp3 "></audio>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js "></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js "></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js "></script>
+
+  <script>
+    // Inisialisasi Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2Rq-EeSNbbyxvUNVnUwSZjIhl_Gnccws",
+      authDomain: "project-game-5addd.firebaseapp.com",
+      databaseURL: "https://project-game-5addd-default-rtdb.firebaseio.com",
+      projectId: "project-game-5addd",
+      storageBucket: "project-game-5addd.firebasestorage.app",
+      messagingSenderId: "658788201764",
+      appId: "1:658788201764:android:71692039dc532497556fb1"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+    const roomId = new URLSearchParams(window.location.search).get("room");
+    const roomRef = database.ref(`rooms/${roomId}`);
+    let mySymbol = null;
+    let turnTimer = null;
+
+    // UI Elements
+    const boardEl = document.getElementById("game-board");
+    const statusEl = document.getElementById("status");
+    const timerEl = document.getElementById("timer");
+    const modal = document.getElementById("resultModal");
+    const modalMessage = document.getElementById("modalMessage");
+    const winSound = document.getElementById("winSound");
+
+    function createBoard() {
+      boardEl.innerHTML = "";
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.dataset.index = i;
+        cell.addEventListener("click", () => handleCellClick(i));
+        boardEl.appendChild(cell);
+      }
+    }
+
+    function updateBoard(board) {
+      const cells = document.querySelectorAll(".cell");
+      board.forEach((value, index) => {
+        cells[index].textContent = value;
+        cells[index].style.animation = "none";
+        cells[index].offsetHeight; // trigger reflow
+      });
+    }
+
+    function highlightWinLine(line) {
+      const cells = document.querySelectorAll(".cell");
+      const start = cells[line[0]].getBoundingClientRect();
+      const end = cells[line[2]].getBoundingClientRect();
+
+      const startX = cells[line[0]].offsetLeft + 50;
+      const startY = cells[line[0]].offsetTop + 50;
+      const endX = cells[line[2]].offsetLeft + 50;
+      const endY = cells[line[2]].offsetTop + 50;
+
+      const length = Math.hypot(endX - startX, endY - startY);
+      const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+
+      const line = document.createElement("div");
+      line.className = "winning-line";
+      line.style.width = length + "px";
+      line.style.transformOrigin = "left center";
+      line.style.transform = `rotate(${angle}deg)`;
+      line.style.left = startX + "px";
+      line.style.top = startY + "px";
+
+      boardEl.appendChild(line);
+    }
+
+    function playWinSound() {
+      winSound.currentTime = 0;
+      winSound.play();
+    }
+
+    function showModal(message) {
+      modalMessage.textContent = message;
+      modal.style.display = "flex";
+    }
+
+    function restartGame() {
+      modal.style.display = "none";
+      roomRef.update({
+        board: Array(9).fill(""),
+        turn: "X",
+        gameOver: false,
+        turnTime: Date.now() + 10000
+      });
+    }
+
+    function goToMenu() {
+      window.location.href = "menu.html";
+    }
+
+    function checkWin(board) {
+      const winCombos = [
+        [0,1,2], [3,4,5], [6,7,8],
+        [0,3,6], [1,4,7], [2,5,8],
+        [0,4,8], [2,4,6]
+      ];
+
+      return winCombos.find(combo =>
+        combo.every(index => board[index] === board[combo[0]] && board[index] !== "")
+      );
+    }
+
+    function startTurnTimer() {
+      clearInterval(turnTimer);
+
+      timerEl.textContent = "Sisa Waktu: 10";
+      let timeLeft = 10;
+
+      turnTimer = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = `Sisa Waktu: ${timeLeft}`;
+        if (timeLeft <= 0) {
+          clearInterval(turnTimer);
+          timerEl.textContent = "Waktu habis!";
+          nextPlayerTurn();
+        }
+      }, 1000);
+    }
+
+    function nextPlayerTurn() {
+      roomRef.child("turn").once("value", snap => {
+        const currentTurn = snap.val();
+        roomRef.update({
+          turn: currentTurn === "X" ? "O" : "X",
+          turnTime: Date.now() + 10000 // Reset timer untuk pemain selanjutnya
+        });
+      });
+    }
+
+    function handleCellClick(index) {
+      roomRef.child("turn").once("value", snap => {
+        const currentTurn = snap.val();
+        if (currentTurn !== mySymbol) return;
+
+        roomRef.child("board").once("value", snap => {
+          const board = [...snap.val()];
+          if (board[index] !== "") return;
+
+          board[index] = mySymbol;
+
+          const winLine = checkWin(board);
+          const isWin = winLine !== undefined;
+          const isDraw = !board.includes("");
+
+          roomRef.update({
+            board: board,
+            turn: mySymbol === "X" ? "O" : "X",
+            gameOver: isWin || isDraw,
+            turnTime: Date.now() + 10000 // Reset timer untuk lawan
+          });
+
+          if (isWin) {
+            playWinSound();
+            showModal(`${mySymbol} Menang!`);
+          } else if (isDraw) {
+            showModal("Seri!");
+          }
+        });
+      });
+    }
+
+    function initGame() {
+      firebase.auth().onAuthStateChanged(user => {
+        if (!user) {
+          alert("Silakan login terlebih dahulu.");
+          window.location.href = "index.html";
+          return;
+        }
+
+        roomRef.on("value", snapshot => {
+          const data = snapshot.val();
+          if (!data) {
+            alert("Room tidak ditemukan.");
+            window.location.href = "online-menu.html";
+            return;
+          }
+
+          // Cek apakah sudah ada 2 pemain dan permainan dimulai
+          const boardNotEmpty = data.board.some(cell => cell !== "");
+          const hasTwoPlayers = data.playerO && data.playerX;
+
+          if (hasTwoPlayers && boardNotEmpty) {
+            const isPlayer = user.uid === data.playerX || user.uid === data.playerO;
+            if (!isPlayer) {
+              alert("Permainan sudah dimulai. Tidak bisa bergabung.");
+              window.location.href = "online-menu.html";
+              return;
+            }
+          }
+
+          // Assign simbol
+          if (user.uid === data.playerX) {
+            mySymbol = "X";
+          } else if (user.uid === data.playerO) {
+            mySymbol = "O";
+          } else {
+            alert("Bukan bagian dari room ini.");
+            window.location.href = "online-menu.html";
+            return;
+          }
+
+          // Sinkronisasi papan
+          roomRef.child("board").on("value", snap => {
+            const board = snap.val();
+            updateBoard(board);
+          });
+
+          // Sinkronisasi giliran
+          roomRef.child("turn").on("value", snap => {
+            const turn = snap.val();
+            if (turn === mySymbol) {
+              statusEl.textContent = "Giliran Anda";
+              roomRef.child("turnTime").once("value", timeSnap => {
+                const turnEndTime = timeSnap.val();
+                if (turnEndTime > Date.now()) {
+                  startTurnTimer(Math.floor((turnEndTime - Date.now()) / 1000));
+                }
+              });
+            } else {
+              statusEl.textContent = "Menunggu lawan...";
+              clearInterval(turnTimer);
+              timerEl.textContent = "";
+            }
+          });
+
+          // Sinkronisasi gameOver
+          roomRef.child("gameOver").on("value", snap => {
+            const gameOver = snap.val();
+            if (gameOver) {
+              roomRef.child("board").once("value", snap => {
+                const board = snap.val();
+                const winLine = checkWin(board);
+                if (winLine) highlightWinLine(winLine);
+              });
+              showModal(mySymbol === "X" ? data.board.flat().filter(x => x === "X").length > 0 ? "X Menang!" : "O Menang!" : "Seri!");
+            }
+          });
+        });
+
+        createBoard();
+      });
+    }
+
+    window.onload = () => {
+      initGame();
+    };
+  </script>
+
+  <style>
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .cell.win {
+      animation: pulse 0.8s infinite;
+    }
+  </style>
+
+</body>
+</html>""
