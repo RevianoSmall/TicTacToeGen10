@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Room</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins :wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      outline: none;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #e0e0e0;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      padding: 20px;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #2c2c2c;
+      color: white;
+      padding: 15px 30px;
+      text-align: left;
+      font-weight: bold;
+      z-index: 1000;
+      font-size: 1.1rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      z-index: 1001;
+      transition: background-color 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background-color: #5a6268;
+    }
+
+    .container {
+      max-width: 400px;
+      width: 100%;
+      background-color: #ffffff;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      margin-top: 120px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 25px;
+      color: #2c2c2c;
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      font-size: 14px;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+
+    select,
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color 0.3s ease;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: #4285f4;
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+    }
+
+    button {
+      width: 100%;
+      margin-top: 25px;
+      padding: 14px;
+      font-size: 16px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #357ae8;
+    }
+
+    .room-id {
+      background-color: #f0f0f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-top: 20px;
+      font-size: 16px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Tombol Back -->
+  <button class="back-btn" onclick="window.location.href='menu.html'">← Kembali</button>
+  <div class="navbar">Tic Tac Toe - Online</div>
+
+  <!-- Create Room Container -->
+  <div class="container">
+    <h2>Buat Room Baru</h2>
+
+    <label for="roomType">Jenis Room:</label>
+    <select id="roomType">
+      <option value="public">Public</option>
+      <option value="private">Private</option>
+    </select>
+
+    <label for="password" id="passwordLabel" style="display: none;">Password:</label>
+    <input type="password" id="password" placeholder="Masukkan password" style="display: none;" />
+
+    <button onclick="createRoom()">Buat Room</button>
+
+    <!-- Tampilkan ID Room setelah dibuat -->
+    <p id="roomIdInfo" class="room-id" style="display: none;"></p>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js "></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js "></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js "></script>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2Rq-EeSNbbyxvUNVnUwSZjIhl_Gnccws",
+      authDomain: "project-game-5addd.firebaseapp.com",
+      databaseURL: "https://project-game-5addd-default-rtdb.firebaseio.com",
+      projectId: "project-game-5addd",
+      storageBucket: "project-game-5addd.firebasestorage.app",
+      messagingSenderId: "658788201764",
+      appId: "1:658788201764:android:71692039dc532497556fb1"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    // Fungsi Generate Short ID
+    function generateShortId(length = 6) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let result = "";
+      for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    // Saat tipe room berubah
+    document.getElementById("roomType").addEventListener("change", e => {
+      const isPrivate = e.target.value === "private";
+      document.getElementById("password").style.display = isPrivate ? "block" : "none";
+      document.getElementById("passwordLabel").style.display = isPrivate ? "block" : "none";
+    });
+
+    // Buat room
+    function createRoom() {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert("Silakan login dulu.");
+        window.location.href = "index.html";
+        return;
+      }
+
+      const type = document.getElementById("roomType").value;
+      const password = document.getElementById("password").value.trim();
+
+      if (type === "private" && password === "") {
+        alert("Harap masukkan password untuk room private.");
+        return;
+      }
+
+      const roomId = generateShortId();
+
+      const newRoomRef = firebase.database().ref("rooms/" + roomId);
+
+      // Cek apakah ID sudah dipakai
+      newRoomRef.once("value", snapshot => {
+        if (snapshot.exists()) {
+          alert("ID room sudah dipakai. Mencoba ID lain...");
+          createRoom(); // Rekursif sampai ketemu ID kosong
+          return;
+        }
+
+        // Simpan data room
+        newRoomRef.set({
+          name: `${user.displayName}'s Room`,
+          type: type,
+          password: type === "private" ? password : null,
+          playerX: user.uid,
+          playerO: null,
+          board: Array(9).fill(""),
+          turn: "X",
+          gameOver: false,
+          createdAt: Date.now()
+        }).then(() => {
+          document.getElementById("roomIdInfo").textContent = `Room berhasil dibuat! ID: ${roomId}`;
+          document.getElementById("roomIdInfo").style.display = "block";
+          setTimeout(() => {
+            window.location.href = `game-online.html?room=${roomId}`;
+          }, 1500);
+        }).catch(error => {
+          alert("Gagal membuat room: " + error.message);
+        });
+      });
+    }
+  </script>
+
+</body>
+</html>
